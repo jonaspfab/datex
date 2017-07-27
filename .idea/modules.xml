@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/Application.iml" filepath="$PROJECT_DIR$/.idea/Application.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/datex.iml" filepath="$PROJECT_DIR$/.idea/datex.iml" />
     </modules>
   </component>
 </project>

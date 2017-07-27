@@ -60,6 +60,11 @@ class ModificationInformation:
         self.bounding_box_dimensions = self.original_dimensions - (2 * int(self.original_dimensions / 10))
         self.proportion_enlarged_original: float = 0
 
+    def update(self, image):
+        self.original_dimensions = image.shape[0]
+        self.bounding_box_dimensions = self.original_dimensions - (2 * int(self.original_dimensions / 10))
+        self.proportion_enlarged_original: float = 0
+
     def set_proportion_enlarged_original(self, image):
         new_dimensions = image.shape[0]
         self.proportion_enlarged_original = new_dimensions / self.original_dimensions
@@ -114,6 +119,12 @@ class ModificationService(TrainingDatasetVisitor):
     def pre_process_image(self):
         image = self.modification_information.image
         original_dimensions = image.shape[0]
+
+        new_dimensions = self.preference.dimensions * 2
+        if new_dimensions < original_dimensions:
+            image = im.set_dimensions(image, new_dimensions)
+            original_dimensions = image.shape[0]
+            self.modification_information.update(image)
 
         border_size = int(original_dimensions / 10)
 
