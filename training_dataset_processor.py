@@ -1,3 +1,8 @@
+"""
+The training_dataset_processor module is responsible for expanding a training dataset,
+by generating new examples which are modifications of existing examples of the set.
+"""
+
 from training_dataset import TrainingDataset, TrainingSetDelegate, TrainingDatasetVisitor, Example
 from user_input import Preference, GeneralPreference, ModificationPreference, PreferenceDelegate, ProgressBarDelegate
 import random
@@ -11,7 +16,7 @@ class ProcessingControl(TrainingSetDelegate, PreferenceDelegate):
         self.progress_bar_delegate: ProgressBarDelegate = None
 
     def receive_dataset(self, training_dataset: TrainingDataset):
-        expansion_service = ExpansionService(training_dataset, self.preference.general_preference)
+        expansion_service = DuplicationService(training_dataset, self.preference.general_preference)
         modification_service = ModificationService(self.preference.modification_preference, self.progress_bar_delegate)
 
         training_dataset.accept(expansion_service)
@@ -27,7 +32,7 @@ class ProcessingControl(TrainingSetDelegate, PreferenceDelegate):
         self.progress_bar_delegate = progress_bar_delegate
 
 
-class ExpansionService(TrainingDatasetVisitor):
+class DuplicationService(TrainingDatasetVisitor):
     def __init__(self, dataset: TrainingDataset, preferences: GeneralPreference):
         self.dataset = dataset
         self.preferences = preferences
@@ -54,15 +59,18 @@ class ExpansionService(TrainingDatasetVisitor):
 
 class ModificationInformation:
 
-    def __init__(self, image):
+    def __init__(self, image, border_proportion: int):
         self.image = image
-        self.original_dimensions = image.shape[0]
-        self.bounding_box_dimensions = self.original_dimensions - (2 * int(self.original_dimensions / 10))
+        self.border_proportion: int = border_proportion
+        self.original_dimensions: int = image.shape[0]
+        self.border_size = 2 * int(self.original_dimensions / border_proportion)
+        self.bounding_box_dimensions: int = self.original_dimensions - self.border_size
         self.proportion_enlarged_original: float = 0
 
     def update(self, image):
         self.original_dimensions = image.shape[0]
-        self.bounding_box_dimensions = self.original_dimensions - (2 * int(self.original_dimensions / 10))
+        self.border_size = 2 * int(self.original_dimensions / self.border_proportion)
+        self.bounding_box_dimensions = self.original_dimensions - self.border_size
         self.proportion_enlarged_original: float = 0
 
     def set_proportion_enlarged_original(self, image):
@@ -87,7 +95,7 @@ class ModificationService(TrainingDatasetVisitor):
 
     def visit(self, example: Example):
         image = example.get_image()
-        self.modification_information = ModificationInformation(image)
+        self.modification_information = ModificationInformation(image, self.preference.border_proportion)
         self.pre_process_image()
 
         if self.preference.should_rotate:
@@ -126,7 +134,7 @@ class ModificationService(TrainingDatasetVisitor):
             original_dimensions = image.shape[0]
             self.modification_information.update(image)
 
-        border_size = int(original_dimensions / 10)
+        border_size = self.modification_information.border_size
 
         x_0, y_0 = border_size, border_size
         x_1, y_1 = original_dimensions - border_size, original_dimensions - border_size
