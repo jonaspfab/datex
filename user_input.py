@@ -155,7 +155,7 @@ class MenuViewController(Frame, ProgressBarDelegate):
         logo_label.place(x=50, y=9)
 
         self.progress_bar = Canvas(self, bg="#EC8B1A", height=10, width=270)
-        self.progress_bar.place(x=-275, y=670 - 10)
+        self.progress_bar.place(x=-275, y=680)
         self.progress_step: float = 0
         self.progress: float = 0
 
@@ -268,9 +268,9 @@ class MenuViewController(Frame, ProgressBarDelegate):
         """Moves progress bar to the right"""
         self.progress += self.progress_step
         if self.progress == 100:
-            self.progress_bar.place(x=-275, y=690 - 10)
+            self.progress_bar.place(x=-275, y=680)
         else:
-            self.progress_bar.place(x=self.progress*2.55-275, y=780)
+            self.progress_bar.place(x=self.progress*2.55-275, y=680)
         self.progress_bar.update()
 
     def executeGArD(self):
