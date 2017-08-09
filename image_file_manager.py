@@ -26,9 +26,12 @@ class ImageFileControl(PreferenceDelegate, TrainingDatasetVisitor):
         images = ImageFileReadService.read_images(self.preference.source_path)
 
         # Initialize training dataset
-        self.training_dataset_delegate.make_dataset(images)
+        self.training_dataset_delegate.make_training_dataset(images)
         # Begin visit of the training dataset to save it (Processing is already completed at this point)
         self.training_dataset_delegate.accept(self)
+
+        self.training_dataset_delegate.reset_training_dataset()
+        self.progress_bar_delegate.done()
 
         call(['open', self.preference.target_path])
 
@@ -59,12 +62,13 @@ class ImageFileReadService:
         for file in files:
             elements_file_name = file.split(".")
 
-            # Check if file follows correct naming schema ($label$.$number$.$format$)
-            if len(elements_file_name) != 3:
-                print("%s is not a valid image file." % file)
-                continue
+            i = 0
+            if len(elements_file_name) == 2:
+                i = 1
+            elif len(elements_file_name) == 3:
+                i = 2
 
-            if elements_file_name[2] != "jpg" and elements_file_name[2] != "png" and elements_file_name[2] != "JPG":
+            if elements_file_name[i] != "jpg" and elements_file_name[i] != "png" and elements_file_name[i] != "JPG":
                 print("%s is not a valid image file." % file)
                 continue
 

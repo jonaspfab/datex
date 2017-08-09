@@ -104,6 +104,8 @@ class ModificationInformation:
 
 
 class ModificationService(TrainingDatasetVisitor):
+    """Responsible for applying all image transformations to every example of the training dataset"""
+
     def __init__(self, preference: ModificationPreference, progress_bar_delegate: ProgressBarDelegate):
         self.preference: ModificationPreference = preference
         self.progress_bar_delegate: ProgressBarDelegate = progress_bar_delegate
@@ -111,6 +113,8 @@ class ModificationService(TrainingDatasetVisitor):
         self.image_counter = 0
 
     def visit(self, example: Example):
+        """Method organizes all function call necessary to modify image referenced by example and update
+        example object"""
         image = example.get_image()
         self.modification_information = ModificationInformation(image, self.preference.border_proportion)
         self.pre_process_image()
@@ -142,6 +146,7 @@ class ModificationService(TrainingDatasetVisitor):
         self.progress_bar_delegate.display_progress()
 
     def pre_process_image(self):
+        """Reduce size of image to increase speed and enlarge background"""
         image = self.modification_information.image
         original_dimensions = image.shape[0]
 
@@ -162,6 +167,7 @@ class ModificationService(TrainingDatasetVisitor):
         self.modification_information.image = image
 
     def apply_rotation_transformation(self):
+        """Rotates image by random amount in between 0 and angle set by user"""
         image = self.modification_information.image
 
         min = 0
@@ -173,6 +179,7 @@ class ModificationService(TrainingDatasetVisitor):
         self.modification_information.image = transformed_image
 
     def apply_gradual_rotation_transformation(self):
+        """Rotates the nth image by nth * rotation angle derived from user input"""
         image = self.modification_information.image
 
         angle = self.preference.gradual_rotation_angle * self.image_counter
@@ -181,6 +188,7 @@ class ModificationService(TrainingDatasetVisitor):
         self.modification_information.image = transformed_image
 
     def apply_zoom_out_transformation(self):
+        """Zooms out of image by random amount"""
         image = self.modification_information.image
 
         min = image.shape[0]
@@ -194,6 +202,7 @@ class ModificationService(TrainingDatasetVisitor):
         self.modification_information.image = transformed_image
 
     def apply_zoom_in_transformation(self):
+        """Zooms into image by random amount"""
         image = self.modification_information.image
 
         min = image.shape[0]
@@ -207,6 +216,7 @@ class ModificationService(TrainingDatasetVisitor):
         self.modification_information.image = transformed_image
 
     def apply_off_center_transformation(self):
+        """Off-centers image in such manner that object is not moved outside the image frame"""
         image = self.modification_information.image
 
         information = self.modification_information
@@ -224,6 +234,7 @@ class ModificationService(TrainingDatasetVisitor):
         self.modification_information.image = transformed_image
 
     def post_process_image(self):
+        """Remove extended background and set image to size specified by the user"""
         image = self.modification_information.image
 
         original_dimensions = self.modification_information.original_dimensions
@@ -238,6 +249,7 @@ class ModificationService(TrainingDatasetVisitor):
         self.modification_information.image = post_processed_image
 
     def apply_lighting_adjustment(self):
+        """Adjust lighting of image by random factor in range specified by the user"""
         image = self.modification_information.image
 
         min = -self.preference.lighting_factor
@@ -252,6 +264,7 @@ class ModificationService(TrainingDatasetVisitor):
         self.modification_information.image = transformed_image
 
     def apply_blur_transformation(self):
+        """Blur image by a random factor in range specified by the user"""
         image = self.modification_information.image
 
         min = 0
