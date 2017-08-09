@@ -10,12 +10,15 @@ import image_manipulations as im
 
 
 class ProcessingControl(TrainingSetDelegate, PreferenceDelegate):
+    """Controls the DuplicationService and ModificationService components"""
 
     def __init__(self):
         self.preference: Preference = None
         self.progress_bar_delegate: ProgressBarDelegate = None
 
     def receive_dataset(self, training_dataset: TrainingDataset):
+        """Invoke visit of received dataset with the DuplicationService, as well as with the ModificationService
+        as the TrainingDatasetVisitor"""
         expansion_service = DuplicationService(training_dataset, self.preference.general_preference)
         modification_service = ModificationService(self.preference.modification_preference, self.progress_bar_delegate)
 
@@ -33,6 +36,9 @@ class ProcessingControl(TrainingSetDelegate, PreferenceDelegate):
 
 
 class DuplicationService(TrainingDatasetVisitor):
+    """Responsible for duplicating all examples of the training dataset the amount of time specified
+    by the user"""
+
     def __init__(self, dataset: TrainingDataset, preferences: GeneralPreference):
         self.dataset = dataset
         self.preferences = preferences
@@ -45,33 +51,44 @@ class DuplicationService(TrainingDatasetVisitor):
             self.dataset.add_example(ex[0], ex[1])
 
     @staticmethod
-    def duplicate_example(number_of_images: int, example: Example):
+    def duplicate_example(number_of_duplicates: int, example: Example):
+        """Duplicates example certain amount of time
+
+        :param number_of_duplicates: Number describing the amount of duplicates created
+        :param example: Example which is duplicated
+        :return: List of tuples containing all the same label and image from the given example
+        """
         examples = []
 
         label: str = example.get_label()
         image = example.get_image()
 
-        for i in range(0, number_of_images):
+        for i in range(0, number_of_duplicates):
             examples.append((label, image))
 
         return examples
 
 
 class ModificationInformation:
+    """Tracks all information that is relevant for the ModificationService during the modification
+    of a certain example"""
 
     def __init__(self, image, border_proportion: int):
         self.image = image
         self.border_proportion: int = border_proportion
         self.original_dimensions: int = image.shape[0]
+        # Size of both borders (left and right or bottom and top, which are all of equal size)
         self.border_size = 2 * int(self.original_dimensions / border_proportion)
+        # Describes length of one side of bounding box, which describes the location of the object in the image
         self.bounding_box_dimensions: int = self.original_dimensions - self.border_size
+        # Proportion
         self.proportion_enlarged_original: float = 0
 
     def update(self, image):
+        """Update information for an image with new dimensions"""
         self.original_dimensions = image.shape[0]
         self.border_size = 2 * int(self.original_dimensions / self.border_proportion)
         self.bounding_box_dimensions = self.original_dimensions - self.border_size
-        self.proportion_enlarged_original: float = 0
 
     def set_proportion_enlarged_original(self, image):
         new_dimensions = image.shape[0]

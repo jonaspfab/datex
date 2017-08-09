@@ -27,7 +27,7 @@ class ModificationPreference:
     def __init__(self, dimensions: int, should_rotate: bool, rotation_angle: int, should_rotate_gradually: bool,
                  gradual_rotation_angle: int, should_off_center: bool, should_zoom_out: bool, should_zoom_in: bool,
                  should_blur: bool, blur_factor: int, should_adjust_lighting: bool, lighting_factor: int,
-                 should_grayscale: bool, should_detect_object: bool, border_proportion: bool):
+                 should_grayscale: bool, border_proportion: bool):
 
         # Dimensions of the generated images
         self.dimensions: int = dimensions
@@ -45,8 +45,6 @@ class ModificationPreference:
         # Value determining how strongly the lighting adjustments will be
         self.lighting_factor: int = lighting_factor
         self.should_grayscale: bool = should_grayscale
-        # Defines whether or not DatEx attempts to detect the object in an image
-        self.should_detect_object: bool = should_detect_object
         # Defines the proportion of the image which is border (not containing the object)
         self.border_proportion: int = border_proportion
 
@@ -120,7 +118,6 @@ class MenuViewModel:
         self.blur_factor: IntVar = IntVar()
         self.lighting_factor: IntVar = IntVar()
         self.should_grayscale: IntVar = IntVar()
-        self.should_detect_object: IntVar = IntVar()
         self.border_proportion: IntVar = IntVar()
         self.border_proportion.set(10)
 
@@ -155,7 +152,7 @@ class MenuViewController(Frame, ProgressBarDelegate):
         logo_label.place(x=50, y=9)
 
         self.progress_bar = Canvas(self, bg="#EC8B1A", height=10, width=270)
-        self.progress_bar.place(x=-275, y=680)
+        self.progress_bar.place(x=-275, y=640)
         self.progress_step: float = 0
         self.progress: float = 0
 
@@ -164,92 +161,87 @@ class MenuViewController(Frame, ProgressBarDelegate):
         self.number_of_images_entry = Entry(self, width=7, textvariable=view_model.number_of_images)
         self.number_of_images_entry.place(x=x_checkboxes, y=y_base)
 
-        self.detect_object_label = Label(self, text="Detect Object")
-        self.detect_object_label.place(x=x_labels, y=y_base + 40)
-        self.detect_object_checkbutton = Checkbutton(self, variable=view_model.should_detect_object)
-        self.detect_object_checkbutton.place(x=x_checkboxes, y=y_base+40)
-
         self.border_proportion_label = Label(self, text="Border\nProportion", justify=LEFT)
-        self.border_proportion_label.place(x=x_labels, y=y_base + 73)
+        self.border_proportion_label.place(x=x_labels, y=y_base + 33)
         self.border_proportion_scale = Scale(self, from_=4, to_=99, orient=HORIZONTAL, showvalue=0, length=80,
                                              variable=view_model.border_proportion)
-        self.border_proportion_scale.place(x=x_checkboxes + 4, y=y_base + 82)
+        self.border_proportion_scale.place(x=x_checkboxes + 4, y=y_base + 42)
         self.border_proportion_amount_label = Label(self, textvariable=view_model.border_proportion, anchor=W, width=2)
-        self.border_proportion_amount_label.place(x=x_checkboxes - 20, y=y_base + 80)
+        self.border_proportion_amount_label.place(x=x_checkboxes - 20, y=y_base + 40)
         self.border_proportion_fraction_label = Label(self, text="1/")
-        self.border_proportion_fraction_label.place(x=x_checkboxes - 35, y=y_base + 80)
+        self.border_proportion_fraction_label.place(x=x_checkboxes - 35, y=y_base + 40)
 
         self.grayscale_label = Label(self, text="Grayscale")
-        self.grayscale_label.place(x=x_labels, y=y_base + 120)
+        self.grayscale_label.place(x=x_labels, y=y_base + 80)
         self.grayscale_checkbutton = Checkbutton(self, variable=view_model.should_grayscale)
-        self.grayscale_checkbutton.place(x=x_checkboxes, y=y_base + 120)
+        self.grayscale_checkbutton.place(x=x_checkboxes, y=y_base + 80)
 
         self.blurring_label = Label(self, text="Blur Images")
-        self.blurring_label.place(x=x_labels, y=y_base + 160)
+        self.blurring_label.place(x=x_labels, y=y_base + 120)
         self.blurring_scale = Scale(self, from_=0, to_=30, orient=HORIZONTAL, showvalue=0, length=80,
                                     variable=view_model.blur_factor)
-        self.blurring_scale.place(x=x_checkboxes+4, y=y_base + 162)
+        self.blurring_scale.place(x=x_checkboxes+4, y=y_base + 122)
         self.blurring_amount_label = Label(self, textvariable=view_model.blur_factor, anchor=E, width=3)
-        self.blurring_amount_label.place(x=x_checkboxes-30, y=y_base+160)
+        self.blurring_amount_label.place(x=x_checkboxes-30, y=y_base+120)
 
         self.lighting_label = Label(self, text="Adjust Lighting")
-        self.lighting_label.place(x=x_labels, y=y_base + 200)
+        self.lighting_label.place(x=x_labels, y=y_base + 160)
         self.lighting_scale = Scale(self, from_=0, to_=30, orient=HORIZONTAL, showvalue=0, length=80,
                                     variable=view_model.lighting_factor)
-        self.lighting_scale.place(x=x_checkboxes + 4, y=y_base + 202)
+        self.lighting_scale.place(x=x_checkboxes + 4, y=y_base + 162)
         self.lighting_amount_label = Label(self, textvariable=view_model.lighting_factor, anchor=E, width=3)
-        self.lighting_amount_label.place(x=x_checkboxes - 30, y=y_base + 200)
+        self.lighting_amount_label.place(x=x_checkboxes - 30, y=y_base + 160)
 
         self.rotation_label = Label(self, text="Rotate Images")
-        self.rotation_label.place(x=x_labels, y=y_base + 240)
+        self.rotation_label.place(x=x_labels, y=y_base + 200)
         self.rotation_checkbutton = Checkbutton(self, variable=view_model.should_rotate)
-        self.rotation_checkbutton.place(x=x_checkboxes, y=y_base + 240)
+        self.rotation_checkbutton.place(x=x_checkboxes, y=y_base + 200)
         self.rotation_angle_entry = Entry(self, width=3, textvariable=view_model.rotation_angle, justify=RIGHT)
-        self.rotation_angle_entry.place(x=x_checkboxes + 30, y=y_base + 240)
+        self.rotation_angle_entry.place(x=x_checkboxes + 30, y=y_base + 200)
         self.rotation_angle_symbol_label = Label(self, text="°")
-        self.rotation_angle_symbol_label.place(x=x_checkboxes + 67, y=y_base + 240)
+        self.rotation_angle_symbol_label.place(x=x_checkboxes + 67, y=y_base + 200)
 
         self.rotation_gradually_label = Label(self, text="Rotate Gradually")
-        self.rotation_gradually_label.place(x=x_labels, y=y_base + 280)
+        self.rotation_gradually_label.place(x=x_labels, y=y_base + 240)
         self.rotation_gradually_checkbutton = Checkbutton(self, variable=view_model.should_rotate_gradually)
-        self.rotation_gradually_checkbutton.place(x=x_checkboxes, y=y_base + 280)
+        self.rotation_gradually_checkbutton.place(x=x_checkboxes, y=y_base + 240)
 
         self.zoom_out_label = Label(self, text="Zoom Out Images")
-        self.zoom_out_label.place(x=x_labels, y=y_base + 320)
+        self.zoom_out_label.place(x=x_labels, y=y_base + 280)
         self.zoom_out_checkbutton = Checkbutton(self, variable=view_model.should_zoom_out)
-        self.zoom_out_checkbutton.place(x=x_checkboxes, y=y_base + 320)
+        self.zoom_out_checkbutton.place(x=x_checkboxes, y=y_base + 280)
 
         self.zoom_out_label = Label(self, text="Zoom In Images")
-        self.zoom_out_label.place(x=x_labels, y=y_base + 360)
+        self.zoom_out_label.place(x=x_labels, y=y_base + 320)
         self.zoom_out_checkbutton = Checkbutton(self, variable=view_model.should_zoom_in)
-        self.zoom_out_checkbutton.place(x=x_checkboxes, y=y_base + 360)
+        self.zoom_out_checkbutton.place(x=x_checkboxes, y=y_base + 320)
 
         self.off_centering_label = Label(self, text="Off Center Images")
-        self.off_centering_label.place(x=x_labels, y=y_base + 400)
+        self.off_centering_label.place(x=x_labels, y=y_base + 360)
         self.off_centering_checkbutton = Checkbutton(self, variable=view_model.should_off_center)
-        self.off_centering_checkbutton.place(x=x_checkboxes, y=y_base + 400)
+        self.off_centering_checkbutton.place(x=x_checkboxes, y=y_base + 360)
 
         self.dimensions_label = Label(self, text="Dimensions")
-        self.dimensions_label.place(x=x_labels, y=y_base + 440)
+        self.dimensions_label.place(x=x_labels, y=y_base + 400)
         self.dimensions_entry = Entry(self, width=4, textvariable=view_model.dimensions)
-        self.dimensions_entry.place(x=x_checkboxes, y=y_base + 437)
+        self.dimensions_entry.place(x=x_checkboxes, y=y_base + 397)
         self.dimensions_y_label = Label(self, textvariable=view_model.dimensions, width=4, anchor=E)
-        self.dimensions_y_label.place(x=x_checkboxes - 50, y=y_base + 440)
+        self.dimensions_y_label.place(x=x_checkboxes - 50, y=y_base + 400)
         self.dimensions_x_label = Label(self, text="x")
-        self.dimensions_x_label.place(x=x_checkboxes - 11, y=y_base + 440)
+        self.dimensions_x_label.place(x=x_checkboxes - 11, y=y_base + 400)
 
         self.source_path_button = Button(self, text="Source", command=self.choose_source_path)
-        self.source_path_button.place(x=x_labels, y=y_base + 480)
+        self.source_path_button.place(x=x_labels, y=y_base + 440)
         self.source_path_label = Label(self, textvariable=view_model.source_path, width=18, anchor=E, justify=RIGHT)
-        self.source_path_label.place(x=x_checkboxes-68, y=y_base+483)
+        self.source_path_label.place(x=x_checkboxes-68, y=y_base+443)
 
         self.target_path_button = Button(self, text="Target", command=self.choose_target_path)
-        self.target_path_button.place(x=x_labels, y=y_base + 520)
+        self.target_path_button.place(x=x_labels, y=y_base + 480)
         self.target_path_label = Label(self, textvariable=view_model.target_path, width=18, anchor=E)
-        self.target_path_label.place(x=x_checkboxes - 68, y=y_base + 523)
+        self.target_path_label.place(x=x_checkboxes - 68, y=y_base + 483)
 
         self.run_button = Button(self, text="Run", command=self.executeGArD)
-        self.run_button.place(x=100, y=y_base + 550)
+        self.run_button.place(x=100, y=y_base + 510)
 
     def choose_source_path(self):
         """Gets invoked by the pressing the 'Source' button and opens a file dialog"""
@@ -268,9 +260,9 @@ class MenuViewController(Frame, ProgressBarDelegate):
         """Moves progress bar to the right"""
         self.progress += self.progress_step
         if self.progress == 100:
-            self.progress_bar.place(x=-275, y=680)
+            self.progress_bar.place(x=-275, y=640)
         else:
-            self.progress_bar.place(x=self.progress*2.55-275, y=680)
+            self.progress_bar.place(x=self.progress*2.55-275, y=640)
         self.progress_bar.update()
 
     def executeGArD(self):
@@ -297,15 +289,13 @@ class MenuViewController(Frame, ProgressBarDelegate):
         should_adjust_lighting = self.view_model.lighting_factor.get() > 0
         lighting_factor = self.view_model.lighting_factor.get()
         should_grayscale = self.view_model.should_grayscale.get() == 1
-        should_detect_object = self.view_model.should_detect_object.get() == 1
         border_proportion = self.view_model.border_proportion.get()
 
         modification_preference = ModificationPreference(dimensions, should_rotate, rotation_angle,
                                                          should_rotate_gradually, gradual_rotation_angle,
                                                          should_off_center, should_zoom_out, should_zoom_in,
                                                          should_blur, blur_factor, should_adjust_lighting,
-                                                         lighting_factor, should_grayscale, should_detect_object,
-                                                         border_proportion)
+                                                         lighting_factor, should_grayscale, border_proportion)
 
         preference: Preference = Preference(general_preference, modification_preference)
 

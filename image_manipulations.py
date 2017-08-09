@@ -1,3 +1,8 @@
+"""
+The image_manipulations module contains all functions used by other modules
+of the DatEx system to manipulate images.
+"""
+
 import cv2
 import numpy as np
 import random
@@ -20,6 +25,13 @@ def grayscale(image):
 
 
 def blur(image, blur_factor):
+    """Function blurs given image using Gaussian Blur
+
+    :param image: Image that is blurred
+    :param blur_factor: Factor by which the image is blurred
+    :return: Blurred image
+    """
+    # Ensure that blur_factor is odd (Otherwise Gaussian blur fails)
     blur_factor -= 1 if blur_factor % 2 == 0 else 0
     result_image = cv2.GaussianBlur(image, (blur_factor, blur_factor), 0)
 
@@ -27,6 +39,13 @@ def blur(image, blur_factor):
 
 
 def off_center(image, x: int, y: int):
+    """Off-center image to given direction and return resulting image
+
+    :param image: Image that is off-centered
+    :param x: Amount image is off-centered horizontally
+    :param y: Amount image is off-centered vertically
+    :return: Off-centered image
+    """
     dimensions = image.shape[0]
     m = np.float32([[1, 0, x], [0, 1, y]])
     result_image = cv2.warpAffine(image, m, (dimensions, dimensions), cv2.BORDER_CONSTANT, borderValue=(0, 0, 0))
@@ -44,6 +63,15 @@ def rotate(image, angle: int):
 
 
 def zoom_in(image, new_dimensions: int):
+    """Function zooms into given image and returns resulting image
+
+    First, the image is cropped to a smaller size and subsequently enlarged
+    to its original dimensions to accomplish the zoom
+
+    :param image: Image that is zoomed into
+    :param new_dimensions: Dimensions of the cropped image, representing the zoomed in image
+    :return: Zoomed in image
+    """
     # Setup parameters and crop out part of the image.
     original_dimensions = image.shape[0]
     result_image = set_dimensions(crop_image(image, new_dimensions), original_dimensions)
@@ -52,9 +80,10 @@ def zoom_in(image, new_dimensions: int):
 
 
 def zoom_out(image, new_dimensions: int):
-    """Method zooms out of image.
+    """Method zooms out of image
 
-    :param new_dimensions: Size to which the original is reduced to. (Must be > 0)
+    :param image: Image that is zoomed out of
+    :param new_dimensions: Size to which the original image is reduced to
     """
 
     original_dimensions = image.shape[0]
@@ -62,10 +91,6 @@ def zoom_out(image, new_dimensions: int):
     # Setup blank image where downsized image will be inserted.
     result_image = np.zeros((original_dimensions, original_dimensions, 3), np.uint8)
     result_image[:, :] = (0, 0, 0)
-
-    if new_dimensions <= 0:
-        print("New size has to be bigger than zero.")
-        return image
 
     # Downsize image to 'new_size' parameter.
     shrunken_image = set_dimensions(image, new_dimensions)
@@ -89,6 +114,12 @@ def set_dimensions(image, new_dimensions: int):
 
 
 def crop_image(image, new_dimensions: int):
+    """Method crops square image from original image
+
+    :param image: Original image
+    :param new_dimensions: Dimensions of cropped image
+    :return: Cropped image
+    """
     original_dimensions = image.shape[0]
     start = int((original_dimensions - new_dimensions) / 2)
     end = original_dimensions - start
@@ -97,141 +128,15 @@ def crop_image(image, new_dimensions: int):
     return cropped_image
 
 
-def getSobel(channel):
-    """Performs Sobel operator on channel
-
-    Performs Sobel operator on channel, which creates an image emphasising edges.
-    This improves the results of the edge detection algorithm.
-
-    :param channel: Channel, that Sobel operation is performed on.
-    :return: Processed image.
-    """
-
-    sobel_x = cv2.Sobel(channel, cv2.CV_16S, 1, 0, borderType=cv2.BORDER_REPLICATE)
-    sobel_y = cv2.Sobel(channel, cv2.CV_16S, 0, 1, borderType=cv2.BORDER_REPLICATE)
-    sobel = np.hypot(sobel_x, sobel_y)
-
-    return sobel
-
-
-def find_significant_contours(sobel_8u):
-    """Finds significant contours in the image to determine the edges of an object.
-
-    :param sobel_8u: Image that algorithm is performed on.
-    :return: Significant contours.
-    """
-
-    image, contours, hierarchy = cv2.findContours(sobel_8u, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-    # Find level 1 contours
-    level1 = []
-    for i, tuple in enumerate(hierarchy[0]):
-        # Each array is in format (Next, Prev, First child, Parent)
-        # Filter the ones without parent
-        if tuple[3] == -1:
-            tuple = np.insert(tuple, 0, [i])
-            level1.append(tuple)
-
-    # From among them, find the contours with large surface area.
-    significant = []
-    # If contour isn't covering 0.5% of total area of image then it probably is too small.
-    too_small = sobel_8u.size * 5 / 1000
-    for tuple in level1:
-        contour = contours[tuple[0]]
-        area = cv2.contourArea(contour)
-        if area > too_small:
-            significant.append([contour, area])
-
-    significant.sort(key=lambda x: x[1])
-
-    return [x[0] for x in significant]
-
-
-def diff(pixel_0: (int, int, int), pixel_1: (int, int, int)):
-    """Calculates the difference in color between two pixels.
-
-    :param pixel_0: Pixel 0.
-    :param pixel_1: Pixel 1.
-    :return: Absolute difference between the pixels.
-    """
-
-    return abs(pixel_0[0] - pixel_1[0]) + abs(pixel_0[1] - pixel_1[1]) + abs(pixel_0[2] - pixel_1[2])
-
-
-def detect_object(img, bg_color: (int, int, int)):
-    """Detects piece in image and returns its coordinates
-    Method checks image for piece. Returns coordinates which can draw a the smallest possible rectangle
-    containing the piece.
-
-    :param img: Image, which contains the object.
-    :param bg_color: Background color of the image.
-    :return: Four-tuple with the coordinates of the piece.
-    """
-
-    img_size = img.shape[0]
-    # Initialize coordinate variables.
-    x_0, y_0, x_1, y_1 = 0, 0, img_size, img_size
-    # Variables indicate whether coordinates where found.
-    x_0_found, y_0_found, x_1_found, y_1_found = False, False, False, False
-    for i in range(0, img_size - 6, 5):
-        for j in range(0, img_size - 6, 5):
-            if not x_0_found and diff(img[j][i], bg_color) > 300:
-                x_0 = i
-                x_0_found = True
-            if not y_0_found and diff(img[i][j], bg_color) > 300:
-                y_0 = i
-                y_0_found = True
-            if not x_1_found and diff(img[img_size - j - 1][img_size - i - 1], bg_color) > 300:
-                x_1 = img_size - i - 1
-                x_1_found = True
-            if not y_1_found and diff(img[img_size - i - 1][img_size - j - 1], bg_color) > 300:
-                y_1 = img_size - i - 1
-                y_1_found = True
-            if x_0_found and y_0_found and x_1_found and y_1_found:
-
-                x_0 -= 30 if x_0 - 30 > 0 else 0
-                y_0 -= 30 if y_0 - 30 > 0 else 0
-                x_1 += 30 if x_1 + 30 < img_size else 0
-                y_1 += 30 if x_1 + 30 < img_size else 0
-
-                return x_0, y_0, x_1, y_1
-
-    # Default case, when no object could be detected.
-    return 0, 0, img_size, img_size
-
-
-def calculate_avg_bg_color_with_mask(img, mask):
-    """Method calculates average color around the detected object.
-    Calculates average color of all color values at the edges of the true area in the mask.
-
-    :param img: Image, that will be used.
-    :param mask: Mask describing the object.
-    :return: Average background color around the object.
-    """
-
-    img_size = img.shape[0]
-    r, g, b, number_samples = 0, 0, 0, 0
-    # Add up color values of all samples and remember number of samples.
-    for i in range(0, img_size - 1, 5):
-        for j in range(0, img_size - 1, 5):
-            if mask[i][j] and (not mask[i - 1][j] or not mask[i + 1][j] or not mask[i][j - 1] or not mask[i][j + 1]):
-                sample_b, sample_g, sample_r = img[i][j]
-                r, g, b = r + sample_r, g + sample_g, b + sample_b
-                number_samples += 1
-
-    # Calculate average and returns it.
-    return int(b / number_samples), int(g / number_samples), int(r / number_samples)
-
-
 def fill_horizontal_img(img_large, img_small):
-    """Method fills a larger image up with multiple copies of a smaller image of the same width.
+    """Method fills a larger image up with multiple copies of a smaller image of the same width
 
     The two images need to be of the same width. The smaller image is inserted multiple times
-    in the larger image in order to fill the larger image up.
+    in the larger image in order to fill the larger image up
 
-    :param img_large: Larger image to be filled up.
-    :param img_small: Smaller image used to fill up large image.
-    :return: Large image filled up with copies of small image.
+    :param img_large: Larger image to be filled up
+    :param img_small: Smaller image used to fill up large image
+    :return: Large image filled up with copies of small image
     """
 
     img_large_size = img_large.shape[0]
@@ -260,14 +165,14 @@ def fill_horizontal_img(img_large, img_small):
 
 
 def fill_vertical_img(img_large, img_small):
-    """Method fills a larger image up with multiple copies of a smaller image of the same height.
+    """Method fills a larger image up with multiple copies of a smaller image of the same height
 
     The two images need to be of the same height. The smaller image is inserted multiple times
-    in the larger image in order to fill the larger image up.
+    in the larger image in order to fill the larger image up
 
-    :param img_large: Larger image to be filled up.
-    :param img_small: Smaller image used to fill up large image.
-    :return: Large image filled up with copies of small image.
+    :param img_large: Larger image to be filled up
+    :param img_small: Smaller image used to fill up large image
+    :return: Large image filled up with copies of small image
     """
 
     img_large_size = img_large.shape[1]
@@ -296,7 +201,7 @@ def fill_vertical_img(img_large, img_small):
 
 
 def enlarge_background(img, new_img_size: int, x_0: int, y_0: int, x_1: int, y_1: int):
-    """Method embeds object in larger image with extended background."""
+    """Method embeds object in larger image with extended background"""
 
     # Ensure borders at all size of the enlarged images have same size.
     while True:
@@ -344,13 +249,13 @@ def enlarge_background(img, new_img_size: int, x_0: int, y_0: int, x_1: int, y_1
 
 
 def calculate_avg_bg_color(img):
-    """Calculates average background color of the image.
+    """Calculates average background color of the image
 
     Method takes four samples from each corner of the image and returns the average
-    color of the samples.
+    color of the samples
 
-    :param img: Image of which the average background color is calculated of.
-    :return: Average Background color.
+    :param img: Image of which the average background color is calculated of
+    :return: Average Background color
     """
 
     img_size = img.shape[0]
@@ -368,6 +273,12 @@ def calculate_avg_bg_color(img):
 
 
 def adjust_brightness(image, lighting_factor):
+    """Method adjusts brightness of image by given amount and returns resulting image
+
+    :param image: Image, which lighting is adjusted
+    :param lighting_factor: Value added to R, B, and G value of every pixel of image
+    :return: Image with adjusted lighting
+    """
     dimensions = image.shape[0]
     for x in range(0, dimensions):
         for y in range(0, dimensions):
@@ -379,19 +290,20 @@ def adjust_brightness(image, lighting_factor):
 
 
 def get_noise(boundary: int):
+    """Returns random value in between zero and given boundary"""
     return int(random.random() * boundary + 1)
 
 
-def adjust_contrast_exposure(img, c: int, e: int):
-    """Method adjust contrast and exposure of image.
+def adjust_contrast_exposure(image, c: int, e: int):
+    """Method adjust contrast and exposure of image
 
-    :param e: Determines the change in exposure.
-    :param c: Determines the change in contrast.
-    :param img: Original image.
-    :return: Image with adjusted contrast and exposure.
+    :param e: Determines the change in exposure
+    :param c: Determines the change in contrast
+    :param image: Original image
+    :return: Image with adjusted contrast and exposure
     """
 
-    adjusted_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    adjusted_img = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
     adjusted_img[:, :, 2] = [[max(pixel - c, 0) if pixel < 190 else min(pixel + c + e, 255) for pixel in row] for row in
                              adjusted_img[:, :, 2]]

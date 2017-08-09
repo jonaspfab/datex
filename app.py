@@ -13,7 +13,7 @@ def main():
 
     root = Tk()
     # Set dimensions of the UI Frame.
-    root.geometry("%dx%d+500+50" % (250, 690))
+    root.geometry("%dx%d+500+50" % (250, 650))
     view_model = view.MenuViewModel()
 
     view.MenuViewController(root, view_model, dataset_file_control, processing_control).mainloop()
