@@ -80,6 +80,11 @@ class ProgressBarDelegate(ABC):
         """Add a progress step to the progress and display it on the UI"""
         pass
 
+    @abstractmethod
+    def done(self):
+        """Reset progress bar when generation of expanded training dataset is done"""
+        pass
+
 
 class PreferenceDelegate(ABC):
     """Provides methods to realize the exchange of preference to other modules"""
@@ -259,10 +264,14 @@ class MenuViewController(Frame, ProgressBarDelegate):
     def display_progress(self):
         """Moves progress bar to the right"""
         self.progress += self.progress_step
-        if self.progress == 100:
-            self.progress_bar.place(x=-275, y=640)
-        else:
-            self.progress_bar.place(x=self.progress*2.55-275, y=640)
+        self.progress_bar.place(x=self.progress*2.55-275, y=640)
+        self.progress_bar.update()
+
+    def done(self):
+        """Moves progress bar to original position"""
+        self.progress_bar.place(x=-275, y=640)
+        self.progress = 0
+        self.progress_step = 0
         self.progress_bar.update()
 
     def executeGArD(self):
